@@ -167,23 +167,20 @@ if not chat_history.messages:
         "content": "명신여자고등학교에 대해 무엇이든 물어보세요! 😊"
     })
 
+# 오류 수정: LangChain 메시지 타입('human', 'ai')을 Streamlit 역할('user', 'assistant')로 매핑합니다.
 for msg in chat_history.messages:
-    st.chat_message(msg.type).write(msg.content)
+    # LangChain message.type을 Streamlit role로 변환
+    if msg.type == "human":
+        role = "user"
+    elif msg.type == "ai":
+        role = "assistant"
+    else:
+        role = msg.type # 기타 타입(예: system)은 그대로 사용
+    
+    st.chat_message(role).write(msg.content)
 
 
 # 오류 발생 가능성이 있던 walrus 연산자 (:=)를 표준 if문으로 변경
 prompt_message = st.chat_input("Your question")
 if prompt_message:
-    st.chat_message("human").write(prompt_message)
-    with st.chat_message("ai"):
-        with st.spinner("Thinking..."):
-            config = {"configurable": {"session_id": "any"}}
-            response = conversational_rag_chain.invoke(
-                {"input": prompt_message},
-                config)
-            
-            answer = response['answer']
-            st.write(answer)
-            with st.expander("참고 문서 확인"):
-                for doc in response['context']:
-                    st.markdown(doc.metadata.get('source', '출처 정보 없음'), help=doc.page_content)
+    st.chat_message("human").write(prompt
