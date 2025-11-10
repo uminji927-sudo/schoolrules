@@ -1,0 +1,21 @@
+{
+  "LastedVersion_standalone": "0.1.0",
+  "LastedVersion_ios": "0.1.0",
+  "LastedVersion_android": "0.1.1",
+  "LastedVersion_launcher": "0.2.2",
+  "LastedVersion_standalone_exe": "2.3.0",
+  "URL_API_DEV": "http://ic-stg01-cyberjinro.ice.go.kr:8084",
+  "URL_WS_DEV": "ws://192.168.74.122:8083/websocket",
+  "URL_API_QA": "http://ic-stg01-cyberjinro.ice.go.kr:8082",
+  "URL_WS_QA": "ws://ic-stg01-cyberjinro.ice.go.kr:8083/websocket",
+  "URL_API_PROD": "https://ic-api-cyberjinro.ice.go.kr",
+  "URL_WS_PROD": "ws://210.95.248.231:8083/websocket",
+  "ServerCheck_DEV":"",
+  "ServerCheck_QA":"",
+  "ServerCheck_PROD":"서버 점검 중입니다.",
+  "StoreURL_ios":"https://apps.apple.com/kr/app/%EC%9D%B8%EC%B2%9C%EC%82%AC%EC%9D%B4%EB%B2%84%EC%A7%84%EB%A1%9C%EA%B5%90%EC%9C%A1%EC%9B%90-%EB%A9%94%ED%83%80%EB%B2%84%EC%8A%A4-%ED%94%8C%EB%9E%AB%ED%8F%BC/id6444855165",
+  "StoreURL_android":"https://play.google.com/store/apps/details?id=com.ice.iceMeta",
+  "SJ_DEV":"1",
+  "SJ_QA":"1",
+  "SJ_PROD":"1"
+}
