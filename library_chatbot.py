@@ -140,4 +140,50 @@ option = st.selectbox("Select Gemini Model",
     help="Gemini 2.5 Flash가 가장 빠르고 효율적입니다"
 )
 
-try
+try:
+    with st.spinner("🔧 챗봇 초기화 중... 잠시만 기다려주세요"):
+        rag_chain = initialize_components(option)
+    st.success("✅ 챗봇이 준비되었습니다!")
+except Exception as e:
+    st.error(f"⚠️ 초기화 중 오류 발생: {str(e)}")
+    st.info("PDF 파일 경로와 API 키를 확인해주세요. 특히 '명신여고소개.pdf' 파일이 존재하는지 확인해주세요.")
+    st.stop()
+
+chat_history = StreamlitChatMessageHistory(key="chat_messages")
+
+conversational_rag_chain = RunnableWithMessageHistory(
+    rag_chain,
+    lambda session_id: chat_history,
+    input_messages_key="input",
+    history_messages_key="history",
+    output_messages_key="answer",
+)
+
+
+# 이전: st.session_state["messages"]를 확인하는 대신, chat_history 객체에 직접 메시지 추가
+if not chat_history.messages:
+    chat_history.add_message({
+        "role": "assistant",
+        "content": "명신여자고등학교에 대해 무엇이든 물어보세요! 😊"
+    })
+
+for msg in chat_history.messages:
+    st.chat_message(msg.type).write(msg.content)
+
+
+# 오류 발생 가능성이 있던 walrus 연산자 (:=)를 표준 if문으로 변경
+prompt_message = st.chat_input("Your question")
+if prompt_message:
+    st.chat_message("human").write(prompt_message)
+    with st.chat_message("ai"):
+        with st.spinner("Thinking..."):
+            config = {"configurable": {"session_id": "any"}}
+            response = conversational_rag_chain.invoke(
+                {"input": prompt_message},
+                config)
+            
+            answer = response['answer']
+            st.write(answer)
+            with st.expander("참고 문서 확인"):
+                for doc in response['context']:
+                    st.markdown(doc.metadata.get('source', '출처 정보 없음'), help=doc.page_content)
