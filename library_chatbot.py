@@ -73,7 +73,7 @@ def get_vectorstore(pages):
 @st.cache_resource
 def initialize_components(selected_model):
     # 파일 경로를 명신여고 소개 PDF로 변경
-    file_path = "명신여고소개.pdf"
+    file_path = "명신여고 소개.pdf"
     pages = load_and_split_pdf(file_path)
     vectorstore = get_vectorstore(pages)
     retriever = vectorstore.as_retriever()
