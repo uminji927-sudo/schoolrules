@@ -172,15 +172,3 @@ for msg in chat_history.messages:
     # LangChain message.type을 Streamlit role로 변환
     if msg.type == "human":
         role = "user"
-    elif msg.type == "ai":
-        role = "assistant"
-    else:
-        role = msg.type # 기타 타입(예: system)은 그대로 사용
-    
-    st.chat_message(role).write(msg.content)
-
-
-# 오류 발생 가능성이 있던 walrus 연산자 (:=)를 표준 if문으로 변경
-prompt_message = st.chat_input("Your question")
-if prompt_message:
-    st.chat_message("human").write(prompt
