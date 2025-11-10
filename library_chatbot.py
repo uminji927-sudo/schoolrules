@@ -52,7 +52,8 @@ def load_and_split_pdf(file_path):
     return text_splitter.split_documents(pages)
 
 @st.cache_resource
-def get_vectorstore(pages):
+# 수정: pages를 _pages로 변경하여 Streamlit 캐싱에서 제외
+def get_vectorstore(_pages):
     # 임베딩 모델 로드 (Kor-MiniLM-L6-v2 사용)
     # 다운로드에 시간이 걸릴 수 있습니다.
     embeddings = HuggingFaceEmbeddings(
@@ -64,7 +65,7 @@ def get_vectorstore(pages):
     # Chroma DB에 저장
     # 명신여고 관련 파일이므로 디렉토리 이름을 'mshs_db'로 변경했습니다.
     vectorstore = Chroma.from_documents(
-        documents=pages, 
+        documents=_pages, # 수정: _pages 사용
         embedding=embeddings, 
         persist_directory="./mshs_db" 
     )
@@ -73,7 +74,7 @@ def get_vectorstore(pages):
 @st.cache_resource
 def initialize_components(selected_model):
     # 파일 경로를 명신여고 소개 PDF로 변경
-    file_path = "명신여고 소개.pdf"
+    file_path = "명신여고소개.pdf"
     pages = load_and_split_pdf(file_path)
     vectorstore = get_vectorstore(pages)
     retriever = vectorstore.as_retriever()
