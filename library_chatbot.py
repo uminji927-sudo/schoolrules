@@ -24,64 +24,56 @@ sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 from langchain_chroma import Chroma
 
 
-#Gemini API 키 설정
+# Gemini API 키 설정
 try:
     os.environ["GOOGLE_API_KEY"] = st.secrets["GOOGLE_API_KEY"]
 except Exception as e:
     st.error("⚠️ GOOGLE_API_KEY를 Streamlit Secrets에 설정해주세요!")
     st.stop()
 
-#cache_resource로 한번 실행한 결과 캐싱해두기
+# cache_resource로 한번 실행한 결과 캐싱해두기
 @st.cache_resource
 def load_and_split_pdf(file_path):
-    loader = PyPDFLoader(file_path)
-    return loader.load_and_split()
+    # PDF 파일 로드
+    try:
+        loader = PyPDFLoader(file_path)
+        pages = loader.load()
+    except Exception as e:
+        st.error(f"❌ PDF 파일 로드 실패: {file_path} 파일을 확인해주세요. ({str(e)})")
+        raise
 
-#텍스트 청크들을 Chroma 안에 임베딩 벡터로 저장
+    # 텍스트 분할
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000,
+        chunk_overlap=100,
+        length_function=len,
+        is_separator_regex=False,
+    )
+    return text_splitter.split_documents(pages)
+
 @st.cache_resource
-def create_vector_store(_docs):
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    split_docs = text_splitter.split_documents(_docs)
-    st.info(f"📄 {len(split_docs)}개의 텍스트 청크로 분할했습니다.")
-
-    persist_directory = "./chroma_db"
-    st.info("🤖 임베딩 모델 로드 중... (첫 실행 시 모델 다운로드)")
+def get_vectorstore(pages):
+    # 임베딩 모델 로드 (Kor-MiniLM-L6-v2 사용)
+    # 다운로드에 시간이 걸릴 수 있습니다.
     embeddings = HuggingFaceEmbeddings(
-        model_name="jhgan/ko-sroberta-multitask",
-        model_kwargs={'device': 'cpu'},
+        model_name="jhgan/ko-sroberta-multitask", 
+        model_kwargs={'device': 'cpu'}, 
         encode_kwargs={'normalize_embeddings': True}
     )
 
-    st.info("🔢 벡터 임베딩 생성 및 저장 중...")
+    # Chroma DB에 저장
+    # 명신여고 관련 파일이므로 디렉토리 이름을 'mshs_db'로 변경했습니다.
     vectorstore = Chroma.from_documents(
-        split_docs,
-        embeddings,
-        persist_directory=persist_directory
+        documents=pages, 
+        embedding=embeddings, 
+        persist_directory="./mshs_db" 
     )
-    st.success("💾 벡터 데이터베이스 생성 완료!")
     return vectorstore
 
-#만약 기존에 저장해둔 ChromaDB가 있는 경우, 이를 로드
-@st.cache_resource
-def get_vectorstore(_docs):
-    persist_directory = "./chroma_db"
-    embeddings = HuggingFaceEmbeddings(
-        model_name="jhgan/ko-sroberta-multitask",
-        model_kwargs={'device': 'cpu'},
-        encode_kwargs={'normalize_embeddings': True}
-    )
-    if os.path.exists(persist_directory):
-        return Chroma(
-            persist_directory=persist_directory,
-            embedding_function=embeddings
-        )
-    else:
-        return create_vector_store(_docs)
-    
-# PDF 문서 로드-벡터 DB 저장-검색기-히스토리 모두 합친 Chain 구축
 @st.cache_resource
 def initialize_components(selected_model):
-    file_path = "[챗봇프로그램및실습] 부경대학교 규정집.pdf"
+    # 파일 경로를 명신여고 소개 PDF로 변경
+    file_path = "명신여고소개.pdf"
     pages = load_and_split_pdf(file_path)
     vectorstore = get_vectorstore(pages)
     retriever = vectorstore.as_retriever()
@@ -123,18 +115,20 @@ def initialize_components(selected_model):
         )
     except Exception as e:
         st.error(f"❌ Gemini 모델 '{selected_model}' 로드 실패: {str(e)}")
-        st.info("💡 'gemini-pro' 모델을 사용해보세요.")
+        st.info("💡 'gemini-2.5-flash' 모델을 사용해보세요.")
         raise
+        
     history_aware_retriever = create_history_aware_retriever(llm, retriever, contextualize_q_prompt)
     question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
     rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
     return rag_chain
 
 # Streamlit UI
-st.header("국립부경대 도서관 규정 Q&A 챗봇 💬 📚")
+# 헤더를 명신여고 소개 챗봇으로 변경
+st.header("명신여고 소개 Q&A 챗봇 🏫 ✨") 
 
 # 첫 실행 안내 메시지
-if not os.path.exists("./chroma_db"):
+if not os.path.exists("./mshs_db"): # 디렉토리 이름도 변경했습니다.
     st.info("🔄 첫 실행입니다. 임베딩 모델 다운로드 및 PDF 처리 중... (약 5-7분 소요)")
     st.info("💡 이후 실행에서는 10-15초만 걸립니다!")
 
@@ -151,7 +145,7 @@ try:
     st.success("✅ 챗봇이 준비되었습니다!")
 except Exception as e:
     st.error(f"⚠️ 초기화 중 오류 발생: {str(e)}")
-    st.info("PDF 파일 경로와 API 키를 확인해주세요.")
+    st.info("PDF 파일 경로와 API 키를 확인해주세요. 특히 '명신여고소개.pdf' 파일이 존재하는지 확인해주세요.")
     st.stop()
 
 chat_history = StreamlitChatMessageHistory(key="chat_messages")
@@ -167,7 +161,8 @@ conversational_rag_chain = RunnableWithMessageHistory(
 
 if "messages" not in st.session_state:
     st.session_state["messages"] = [{"role": "assistant", 
-                                     "content": "국립부경대 도서관 규정에 대해 무엇이든 물어보세요!!!!!"}]
+                                     # 초기 메시지를 명신여고 관련으로 변경
+                                     "content": "명신여자고등학교에 대해 무엇이든 물어보세요! 😊"}]
 
 for msg in chat_history.messages:
     st.chat_message(msg.type).write(msg.content)
@@ -186,4 +181,4 @@ if prompt_message := st.chat_input("Your question"):
             st.write(answer)
             with st.expander("참고 문서 확인"):
                 for doc in response['context']:
-                    st.markdown(doc.metadata['source'], help=doc.page_content)
+                    st.markdown(doc.metadata.get('source', '출처 정보 없음'), help=doc.page_content)
